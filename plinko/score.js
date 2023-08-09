@@ -2,24 +2,55 @@
 Technique - Classification 
 Algorithm used - K-Nearest Neighbour (knn) "Birds of a feather flock together"
 
+knn with one Intependent variable:
+-Drop a ball bunch of times all around the board
+-For each observation, subtract drop point from 300px, take absolute value
+-Sort the results from least to greatest
+-Look at the 'k' top records, What was the most common bucket?
+-Whichever bucketcame up most frequently is the one ours will probably go into
 */
 
 const output = [];
-let predictionPoint = 300;
-let k = 3;
+// let predictionPoint = 300;
+// let k = 3;
 
 // Ran every time a balls drops into a bucket
 function onScoreUpdate(dropPosition, bounciness, size, bucketLabel) {
   output.push([dropPosition, bounciness, size, bucketLabel])
 }
 
-const numbers = [[10, .5, 16, 1], [200, .5, 16, 4], [350, .5, 16, 4], [600, .5, 16, 5]]
-
 
 function runAnalysis() {
+  const testSetSizeToBeCompared = 100
+  const [testSet, trainingSet] = splitDataSet(output, testSetSizeToBeCompared)
+  _.range(1, 20).forEach(k => {
+    const accuracy = _.chain(testSet)
+      .filter(testPoint => knn(trainingSet, testPoint[0], k) === testPoint[3])
+      .size()
+      .divide(testSetSizeToBeCompared)
+      .value()
 
-  const bucket = _.chain(numbers)
-    .map(row => [distance(row[0]), row[3]])
+    console.log('Accuracy: ', accuracy * 100, '% K: ', k)
+
+    //===================OR=======================
+    // let numberCorrect = 0
+    // for (let i = 0; i < testSet.length; i++) {
+    //   const bucket = knn(trainingSet, testSet[i][0], k)
+    //   console.log(bucket, testSet[i][3])  //resulted bucket v/s expected bucket
+    //   if (bucket === testSet[i][3]) {
+    //     numberCorrect++
+    //   }
+    // }
+    // console.log('Accuracy: ', (numberCorrect / testSetSizeToBeCompared) * 100, '% K: ', k)
+
+  })
+
+
+}
+
+function knn(data, point, k) {
+  return _.chain(data)
+    .map(row => [distance(row[0], point), row[3]])
     .sortBy(row => row[0])
     .slice(0, k)
     .countBy(row => row[1])
@@ -29,30 +60,14 @@ function runAnalysis() {
     .first()
     .parseInt()
     .value()
-
-  console.log("The Ball will probably fall into", bucket)
-}
-
-function knn() {
-  return _.chain(numbers)
-    .map(row => [distance(row[0]), row[3]])
-    .sortBy(row => row[0])
-    .slice(0, k)
-    .countBy(row => row[1])
-    .toPairs()
-    .sortBy(row => row[2])
-    .last()
-    .first()
-    .parseInt()
-    .value()
 }
 
 
-function distance(point) {
-  return Math.abs(point - predictionPoint)
+function distance(pointA, pointB) {
+  return Math.abs(pointA - pointB)
 }
 
-//Getting Model Accuracy by comparing training set and test set
+//Getting Model Accuracy by comparing randomized training set and randomized test set data
 function splitDataSet(data, testCount) {
   const shuffled = _.shuffle(data)
   const testSet = _.slice(shuffled, 0, testCount)   //upto testCount
