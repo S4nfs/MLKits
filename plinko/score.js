@@ -62,9 +62,13 @@ function knn(data, point, k) {
     .value()
 }
 
-
+//3D Pythagorean theorem c2 = a2 + b2 | Getting Actual diagonal distance of hypotenuse  - (A(dropposition) ** 2 + B(Bounciness) ** 2 + C(Size) ** 2) ** 0.5
 function distance(pointA, pointB) {
-  return Math.abs(pointA - pointB)
+  return _.chain(pointA)
+    .zip(pointB)
+    .map(([a, b]) => (a - b) ** 2)
+    .sum()
+    .value() ** 0.5
 }
 
 //Getting Model Accuracy by comparing randomized training set and randomized test set data
