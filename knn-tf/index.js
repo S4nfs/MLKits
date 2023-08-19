@@ -54,9 +54,9 @@ function knn(features, labels, predictionPoint, k) {
         .expandDims(1)
         .concat(labels, 1)
         .unstack()
-        .sort((a, b) => a.get(0) > b.get(0) ? 1 : -1)
+        .sort((a, b) => a.arraySync()[0] > b.arraySync()[0] ? 1 : -1)
         .slice(0, k)
-        .reduce((acc, pair) => acc + pair.get(1), 0) / k
+        .reduce((acc, pair) => acc + pair.arraySync()[1], 0) / k
 }
 let { features, labels, testFeatures, testLabels } = loadCSV('kc_house_data.csv', {
     shuffle: true,
@@ -69,4 +69,6 @@ labels = tf.tensor(labels)
 
 
 const result = knn(features, labels, tf.tensor(testFeatures[0]), 10)
-console.log("Result", result, testLabels[0][0])
+//error = expected value - predicted value / expected value
+const err = (testLabels[0][0] - result) / testLabels[0][0]
+console.log("Result", result, testLabels[0][0], "Error", err * 100)
