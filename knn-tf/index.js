@@ -46,8 +46,18 @@ const tf = require("@tensorflow/tfjs")
 const loadCSV = require('./load-csv')
 
 function knn(features, labels, predictionPoint, k) {
+    /* Data Set Normalization :
+    1.Normalised/scaling DataSet (range from 0 - 1)= Feature value - minOfFeatureValues / maxOfFeatureValues - minOfFeatureValues
+    2.Stardardized DataSet (beyond -1 - 1) = Value - Average(aka mean) / standard deviation (aka. sqrt(variance)
+    */
+    //applying standardization here
+    const { mean, variance } = tf.moments(features, 0)
+    const scaledPrediction = predictionPoint.sub(mean).div(variance.pow(0.5))
+
     return features
-        .sub(predictionPoint)
+        .sub(mean)
+        .div(variance.pow(0.5))
+        .sub(scaledPrediction)
         .pow(2)
         .sum(1)
         .pow(0.5)
@@ -64,11 +74,18 @@ let { features, labels, testFeatures, testLabels } = loadCSV('kc_house_data.csv'
     dataColumns: ['lat', 'long'],
     labelColumns: ['price']
 }) //remember all are 2D arrays
+
+// console.log(testLabels[0][0])
+// console.log(testFeatures[0])
+
 features = tf.tensor(features)
 labels = tf.tensor(labels)
 
+testFeatures.forEach((testpoint, i) => {   //iterating all the 10 testfeatures and testLabels instead of hardcoded single value like [ 47.561, -122.226 ]
 
-const result = knn(features, labels, tf.tensor(testFeatures[0]), 10)
-//error = expected value - predicted value / expected value
-const err = (testLabels[0][0] - result) / testLabels[0][0]
-console.log("Result", result, testLabels[0][0], "Error", err * 100)
+    const result = knn(features, labels, tf.tensor(testpoint), 10)
+    //error = expected value - predicted value / expected value
+    const err = (testLabels[i][0] - result) / testLabels[i][0]
+    console.log("Result", result, testLabels[0][0], "Error", err * 100)
+})
+
