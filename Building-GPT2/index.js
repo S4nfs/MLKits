@@ -90,7 +90,7 @@ async function GPT() {
     const data = tf.tensor(encodedText, [encodedText.length], 'int32') // 'int32' is similar to torch.long in PyTorch
 
     // Print the shape and dtype
-    console.log('Shape:', data.shape)
+    console.log('Shape:', data.shape) // [ 122983 ]
     console.log('Dtype:', data.dtype)
 
     // Display the first 1000 encoded characters
@@ -98,21 +98,21 @@ async function GPT() {
     firstThousand.print()
 
     // Split the data into training and validation sets 90% will be used for training, the rest 10% for validation
-    const n = Math.floor(0.9 * data.length)
-    const trainData = data.slice(0, n)
-    const valData = data.slice(n)
+    const n = Math.floor(0.9 * data.shape[0]) // 90% of data for training
+    const trainData = data.slice([0], [n]) // Slicing from 0 to n for training data
+    const valData = data.slice([n], [data.shape[0] - n]) // Slicing from n to the end for validation data
 
     // Define the block size or context length
     const blockSize = 8
-    const trainDataSubset = trainData.slice(0, blockSize + 1) // 9 character from training set
+    const trainDataSubset = trainData.slice([0], [blockSize + 1]) // 9 characters from training set
 
-    const x = trainData.slice(0, blockSize) // The first 'blockSize' elements of the training data
-    const y = trainData.slice(1, blockSize + 1) // The next 'blockSize' elements, starting from index 1
+    const x = trainData.slice([0], [blockSize]) // The first 'blockSize' elements of the training data
+    const y = trainData.slice([1], [blockSize + 1]) // The next 'blockSize' elements, starting from index 1
 
     for (let t = 0; t < blockSize; t++) {
-      const context = x.slice(0, t + 1) // The input context, from the start to the current index
-      const target = y[t] // The target is the current element in 'y'
-      console.log(`when input is ${context} the target: ${target}`)
+      const context = x.slice([0], [t + 1]) // The input context, from the start to the current index
+      const target = y.slice([t], [1]) // The target is the current element in 'y'
+      console.log(`when input is ${context.dataSync()} the target: ${target.dataSync()}`)
     }
   } catch (err) {
     console.error(`GPT Error: ${err}`)
