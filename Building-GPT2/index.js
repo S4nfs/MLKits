@@ -83,9 +83,10 @@ async function fetchWebsiteText(url) {
 // Download the whole play "As You Like It - By William Shakespeare" in a file (Already done)
 // fetchWebsiteText('https://shakespeare.mit.edu/asyoulikeit/full.html')
 
-//🦴 All the unique characters that occur in this text-----------------------------------------------------------
 async function GPT() {
   try {
+    //🦴 All the unique characters that occur in this text-----------------------------------------------------------
+
     const text = await fs.promises.readFile('As-You-Like-It.txt', 'utf8')
     // Convert the text into a set of unique characters and then sort them
     const chars = Array.from(new Set(text)).sort()
@@ -129,23 +130,74 @@ async function GPT() {
     const firstThousand = data.slice([0], [1000])
     firstThousand.print()
 
+    //🍵 Example of Creating single batche of chunks data---------------------------------------------------------------------------------------------
     // Split the data into training and validation sets 90% will be used for training, the rest 10% for validation
-    const n = Math.floor(0.9 * data.shape[0]) // 90% of data for training
-    const trainData = data.slice([0], [n]) // Slicing from 0 to n for training data
-    const valData = data.slice([n], [data.shape[0] - n]) // Slicing from n to the end for validation data
+    // const n = Math.floor(0.9 * data.shape[0]) // 90% of data for training
+    // const trainData = data.slice([0], [n]) // Slicing from 0 to n for training data
+    // const valData = data.slice([n], [data.shape[0] - n]) // Slicing from n to the end for validation data
 
-    // Define the block size or context length
-    const blockSize = 8
-    const trainDataSubset = trainData.slice([0], [blockSize + 1]) // 9 characters from training set
+    // // Define the block size or context length
+    let blockSize = 8
+    // const trainDataSubset = trainData.slice([0], [blockSize + 1]) // 9 characters from training set
 
-    const x = trainData.slice([0], [blockSize]) // The first 'blockSize' elements of the training data
-    const y = trainData.slice([1], [blockSize + 1]) // The next 'blockSize' elements, starting from index 1
+    // const x = trainData.slice([0], [blockSize]) // The first 'blockSize' elements of the training data
+    // const y = trainData.slice([1], [blockSize + 1]) // The next 'blockSize' elements, starting from index 1
 
-    for (let t = 0; t < blockSize; t++) {
-      const context = x.slice([0], [t + 1]) // The input context, from the start to the current index
-      const target = y.slice([t], [1]) // The target is the current element in 'y'
-      console.log(`when input is ${context.dataSync()} the target: ${target.dataSync()}`)
+    // for (let t = 0; t < blockSize; t++) {
+    //   const context = x.slice([0], [t + 1]) // The input context, from the start to the current index
+    //   const target = y.slice([t], [1]) // The target is the current element in 'y'
+    //   console.log(`when input is ${context.dataSync()} the target: ${target.dataSync()}`)
+    // }
+
+    //👩‍🍳 Creating batches of X of tensors and Y of targets to feed parallel to transformer---------------------------------------------------
+    // Set manual seed for reproducibility
+    function setSeed(seed) {
+      //Function to create random number generator on a machine that spits out numbers in a seemingly random way. However, if you tell the machine to always start from the same "starting point," it will spit out the same sequence of "random" numbers every time you use it. This starting point is what we call a seed.
+      tf.randomUniform([seed])
     }
+    setSeed(1337)
+
+    const batchSize = 4 // Number of independent sequences to process in parallel
+    blockSize = 8 // Maximum context length for predictions
+
+    // Simulate some train and validation data for demonstration
+    const trainData = tf.range(0, 100, 1).arraySync() // Generate dummy train data as array
+    const valData = tf.range(100, 200, 1).arraySync() // Generate dummy validation data as array
+
+    // Function to get a batch of data
+    function getBatch(split) {
+      const data = split === 'train' ? trainData : valData
+      const ix = Array.from({ length: batchSize }, () => Math.floor(Math.random() * (data.length - blockSize)))
+
+      const x = ix.map((i) => data.slice(i, i + blockSize))
+      const y = ix.map((i) => data.slice(i + 1, i + blockSize + 1))
+
+      return [tf.tensor2d(x), tf.tensor2d(y)]
+    }
+
+    // Generate a training batch
+    const [xb, yb] = getBatch('train')
+    console.log('inputs:')
+    xb.print() // TensorFlow.js method to print tensor values
+    console.log('targets:')
+    yb.print()
+
+    console.log('----')
+
+    // Iterate over batch and time dimensions to display context and target
+    for (let b = 0; b < batchSize; b++) {
+      // Batch dimension
+      for (let t = 0; t < blockSize; t++) {
+        // Time dimension
+        const context = xb.slice([b, 0], [1, t + 1]).arraySync()[0]
+        const target = yb.arraySync()[b][t]
+        console.log(`when input is ${context} the target: ${target}`)
+      }
+    }
+
+    // Clean up tensors to avoid memory leaks
+    xb.dispose()
+    yb.dispose()
   } catch (err) {
     console.error(`GPT Error: ${err}`)
   }
